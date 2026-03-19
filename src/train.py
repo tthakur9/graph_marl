@@ -14,6 +14,8 @@ TorchRL MADDPG baseline on PettingZoo MPE Simple Tag.
 """
 
 from __future__ import annotations
+import csv
+import datetime
 import torch
 import torch.nn as nn
 from pathlib import Path
@@ -39,6 +41,13 @@ def main() -> None:
     print(OmegaConf.to_yaml(cfg))
 
     total_frames_target = cfg.collection.frames_per_batch * cfg.collection.n_iters
+
+    # Output directory for this run
+    run_tag = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    runs_dir = Path(__file__).parent.parent / "runs" / run_tag
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = runs_dir / "metrics.csv"
+    print(f"Run dir: {runs_dir}")
 
     # Environment
     base_env = PettingZooEnv(
@@ -148,6 +157,9 @@ def main() -> None:
 
     # Training loop
     total_frames = 0
+    csv_writer = None
+    csv_file = None
+
     for iteration, td in enumerate(collector):
         rb.extend(td.reshape(-1).cpu())
         total_frames += cfg.collection.frames_per_batch
@@ -158,7 +170,6 @@ def main() -> None:
             training_groups.remove("agent")
 
         if len(rb) < cfg.training.batch_size:
-            # Compute and log metrics even before training starts
             metrics = compute_metrics(td, base_env.group_map, n_agents, cfg.env.max_steps)
             print(format_metrics(iteration, total_frames, metrics))
             continue
@@ -201,6 +212,26 @@ def main() -> None:
         # Metrics & logging
         metrics = compute_metrics(td, base_env.group_map, n_agents, cfg.env.max_steps)
         print(format_metrics(iteration, total_frames, metrics))
+
+        # CSV logging — open and write header on first training iteration
+        row = {"iteration": iteration, "total_frames": total_frames, **metrics}
+        if csv_writer is None:
+            csv_file = open(csv_path, "w", newline="")
+            csv_writer = csv.DictWriter(csv_file, fieldnames=list(row.keys()))
+            csv_writer.writeheader()
+        csv_writer.writerow(row)
+        csv_file.flush()
+
+    if csv_file is not None:
+        csv_file.close()
+
+    # Save model weights
+    weights_path = runs_dir / "weights.pt"
+    torch.save(
+        {g: {"actor": actors[g].state_dict(), "critic": critics[g].state_dict()} for g in groups},
+        weights_path,
+    )
+    print(f"Weights saved to {weights_path}")
 
     env.close()
     collector.shutdown()
