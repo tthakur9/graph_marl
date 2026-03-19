@@ -1,5 +1,5 @@
 """
-TorchRL baseline run (MADDPG-style) on PettingZoo MPE Simple Tag.
+TorchRL baseline run MADDPG on PettingZoo MPE Simple Tag.
 """
 
 from __future__ import annotations
@@ -7,7 +7,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 
-from envs.simple_tag import make_env
+from src.envs.simple_tag import make_env
 from supersuit import pad_observations_v0, pad_action_space_v0
 
 # TorchRL imports
@@ -18,7 +18,7 @@ from torchrl.data.replay_buffers.samplers import RandomSampler
 from torchrl.envs import ParallelEnv, PettingZooEnv, TransformedEnv, Compose
 from torchrl.envs.transforms import DoubleToFloat, RewardSum, StepCounter
 from torchrl.modules import MultiAgentMLP
-from torchrl.objectives.multiagent import MADDPGLoss
+from torchrl.objectives import DDPGLoss
 from torch.optim import Adam
 
 
@@ -30,12 +30,7 @@ def main():
 
     # Wrap PettingZoo env in TorchRL env
     base_env = PettingZooEnv(
-        make_env(
-            seed=seed,
-            max_cycles=200,
-            continuous_actions=True,
-            pad=True
-        ),
+        task="mpe/simple_tag_v3",
         parallel=True
     )
     env = TransformedEnv(
@@ -50,6 +45,7 @@ def main():
     # Infer shapes
     obs_spec = env.observation_spec
     act_spec = env.action_spec
+    breakpoint()
     print("observation_spec:", obs_spec)
     print("action_spec:", act_spec)
 
@@ -66,7 +62,7 @@ def main():
     )
 
     # TorchRL MADDPG loss module will build critics if provided
-    loss_module = MADDPGLoss(
+    loss_module = DDPGLoss(
         actor_network=actor,
         action_spec=act_spec,
         delay_value=True
@@ -106,6 +102,10 @@ def main():
         loss.backward()
         optim.step()
         loss_module.update_target_networks()
+
+        if i == 0:
+            print(td)
+            print(td.keys(True))
 
         if i % 10 == 0:
             # RewardSum transform puts episodic return under something like ("episode_reward",)
