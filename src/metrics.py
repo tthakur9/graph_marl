@@ -8,11 +8,6 @@ Implements proposal evaluation metrics computed from collector TensorDicts each 
 
 All functions accept the raw TensorDict `td` returned by the collector (shape [frames_per_batch]) 
 and the group map from the environment.
-
-Usage in train.py:
-    from src.metrics import compute_metrics, format_metrics
-    metrics = compute_metrics(td, base_env.group_map, n_agents, cfg)
-    print(format_metrics(iteration, total_frames, metrics))
 """
 
 from __future__ import annotations
@@ -40,8 +35,8 @@ def episode_return(td: TensorDictBase, group: str) -> float | None:
     key = (group, "episode_reward")
     if key not in td.keys(include_nested=True):
         return None
-    ep_reward = td[key]             # [T, n_agents, 1]
-    mask = _episode_mask(td)        # [T]
+    ep_reward = td[key] # [T, n_agents, 1]
+    mask = _episode_mask(td) # [T]
     if not mask.any():
         return None
     # mean over agents then over episodes
@@ -63,12 +58,12 @@ def capture_rate(td: TensorDictBase) -> float | None:
     if not done.any():
         return None
 
-    # adversary reward: [T, n_adv, 1] → max over agents → [T]
+    # adversary reward: [T, n_adv, 1] is the max over agents → [T]
     next_td = td.get("next")
     adv_rew = next_td.get(("adversary", "reward"))  # [T, n_adv, 1]
     max_rew = adv_rew.amax(dim=(-2, -1)) # [T]
 
-    # walk episodes - a done at step t ends the episode [0..t]
+    # walk episodes - a done at step t ends the episode 
     episode_captured = []
     ep_max = []
     for t in range(len(done)):
@@ -84,11 +79,11 @@ def capture_rate(td: TensorDictBase) -> float | None:
 
 def time_to_capture(td: TensorDictBase, max_steps: int) -> float | None:
     CAPTURE_THRESHOLD = 5.0
-    done    = td.get("next").get("done").squeeze(-1).bool()   # fix: read from next
+    done = td.get("next").get("done").squeeze(-1).bool()   # fixed: now read from next
     next_td = td.get("next")
     adv_rew = next_td.get(("adversary", "reward")).amax(dim=(-2, -1))
 
-    first_capture_steps = []   # only first capture per episode
+    first_capture_steps = [] # only first capture per episode
     ep_start = 0
     ep_captured = False
     for t in range(len(done)):
@@ -204,12 +199,12 @@ def compute_metrics(
         metrics[f"ep_return_{g}"] = episode_return(td, g)
 
     # capture metrics (chaser perspective)
-    metrics["capture_rate"]      = capture_rate(td)
-    metrics["time_to_capture"]   = time_to_capture(td, max_steps)
+    metrics["capture_rate"] = capture_rate(td)
+    metrics["time_to_capture"] = time_to_capture(td, max_steps)
 
     # predator spatial metrics
-    metrics["collision_rate"]    = collision_rate(td)
-    metrics["coverage_eff"]      = coverage_efficiency(td)
+    metrics["collision_rate"] = collision_rate(td)
+    metrics["coverage_eff"] = coverage_efficiency(td)
 
     return metrics
 
