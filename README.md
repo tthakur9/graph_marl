@@ -1,9 +1,11 @@
 Graph-Augmented MADDPG for Scalable MARL
 
-SETUP:
+Environment Setup:
+`python3 -m venv .venv`
 `source .venv/bin/activate`
-`pip install torch torchrl tensordict pettingzoo supersuit`
+`pip install --upgrade pip`
+`pip install -r requirements.txt`
 
-RUN PROTOTYPE:
-`python -m src.experiments.torchrl_baseline`
+Train Baseline:
+`python -m src.train`
 
