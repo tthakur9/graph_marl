@@ -51,7 +51,7 @@ def main() -> None:
     total_frames_target = cfg.collection.frames_per_batch * cfg.collection.n_iters
 
     # Output directory for this run
-    run_tag = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_tag = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_seed{cfg.seed}"
     runs_dir = Path(__file__).parent.parent / "runs" / run_tag
     runs_dir.mkdir(parents=True, exist_ok=True)
     csv_path = runs_dir / "metrics.csv"
