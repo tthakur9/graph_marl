@@ -29,3 +29,7 @@ maddpg:
 
 architecture:
   hidden: 256
+
+eval:
+  interval: 10    # run evaluation every N train iterations
+  n_episodes: 10  # episodes per eval (mean episode return reported)
