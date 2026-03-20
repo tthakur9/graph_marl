@@ -171,7 +171,7 @@ def main() -> None:
         policy=collector_policy,
         frames_per_batch=cfg.collection.frames_per_batch,
         total_frames=total_frames_target,
-        device=device,
+        device="cpu",
         storing_device="cpu",
     )
 
@@ -189,6 +189,7 @@ def main() -> None:
     total_frames = 0
 
     for iteration, td in enumerate(collector):
+        td = td.to(device)
         rb.extend(td.reshape(-1).cpu())
         total_frames += cfg.collection.frames_per_batch
 
