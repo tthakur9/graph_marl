@@ -3,3 +3,6 @@ __pycache__/
 
 # Runs
 /runs/
+
+#Mac stuff
+.DS_Store
