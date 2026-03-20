@@ -14,6 +14,7 @@ TorchRL MADDPG baseline on PettingZoo MPE Simple Tag.
 """
 
 from __future__ import annotations
+import argparse
 import csv
 import datetime
 import torch
@@ -32,9 +33,15 @@ from src.evaluate import run_eval
 
 
 def main() -> None:
-    # Config 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", type=int, default=None, help="Override cfg.seed")
+    args = parser.parse_args()
+
+    # Config
     cfg_path = Path(__file__).parent.parent / "conf" / "baseline.yaml"
     cfg = OmegaConf.load(cfg_path)
+    if args.seed is not None:
+        cfg.seed = args.seed
 
     torch.manual_seed(cfg.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
