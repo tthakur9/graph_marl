@@ -183,9 +183,7 @@ def main() -> None:
     )
 
     # CSV: pre-define all columns so eval columns are always present
-    train_metric_keys = [f"ep_return_{g}" for g in groups] + [
-        "capture_rate", "time_to_capture", "collision_rate", "coverage_eff"
-    ]
+    train_metric_keys = [f"return_{g}" for g in groups]
     eval_metric_keys = [f"eval_ep_return_{g}" for g in groups]
     csv_fieldnames = ["iteration", "total_frames"] + train_metric_keys + eval_metric_keys
     csv_file = open(csv_path, "w", newline="")
@@ -206,7 +204,7 @@ def main() -> None:
             training_groups.remove("agent")
 
         if len(rb) < cfg.training.batch_size:
-            metrics = compute_metrics(td, base_env.group_map, n_agents, cfg.env.max_steps)
+            metrics = compute_metrics(td, base_env.group_map)
             print(format_metrics(iteration, total_frames, metrics))
             continue
 
@@ -246,7 +244,7 @@ def main() -> None:
                 target_updaters[g].step()
 
         # Metrics & logging
-        metrics = compute_metrics(td, base_env.group_map, n_agents, cfg.env.max_steps)
+        metrics = compute_metrics(td, base_env.group_map)
         print(format_metrics(iteration, total_frames, metrics))
 
         # Intermittent deterministic evaluation
