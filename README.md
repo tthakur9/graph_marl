@@ -9,3 +9,5 @@ Environment Setup:
 Train Baseline:
 `python -m src.train`
 
+Run on PACE-ICE:
+Checkout `pace-ice` then run `sbatch job.sh`
