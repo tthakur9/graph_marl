@@ -28,6 +28,7 @@ from torchrl.modules import AdditiveGaussianModule
 from torchrl.objectives import DDPGLoss, SoftUpdate, ValueEstimators
 from src.models import make_actor, make_critic
 from src.metrics import compute_metrics, format_metrics
+from src.evaluate import run_eval
 
 
 def main() -> None:
@@ -68,6 +69,25 @@ def main() -> None:
         ),
     )
     check_env_specs(env)
+
+    # Separate env for deterministic eval (avoids interfering with the collector)
+    eval_base = PettingZooEnv(
+        task=cfg.env.task,
+        parallel=True,
+        seed=cfg.seed + 1,
+        continuous_actions=True,
+        num_good=cfg.env.n_evaders,
+        num_adversaries=cfg.env.n_chasers,
+        num_obstacles=cfg.env.n_obstacles,
+        max_cycles=cfg.env.max_steps,
+    )
+    eval_env = TransformedEnv(
+        eval_base,
+        RewardSum(
+            in_keys=eval_base.reward_keys,
+            reset_keys=["_reset"] * len(eval_base.group_map),
+        ),
+    )
 
     groups   = list(base_env.group_map.keys())
     n_agents = {g: len(base_env.group_map[g]) for g in groups}
@@ -155,10 +175,18 @@ def main() -> None:
         storing_device="cpu",
     )
 
+    # CSV: pre-define all columns so eval columns are always present
+    train_metric_keys = [f"ep_return_{g}" for g in groups] + [
+        "capture_rate", "time_to_capture", "collision_rate", "coverage_eff"
+    ]
+    eval_metric_keys = [f"eval_ep_return_{g}" for g in groups]
+    csv_fieldnames = ["iteration", "total_frames"] + train_metric_keys + eval_metric_keys
+    csv_file = open(csv_path, "w", newline="")
+    csv_writer = csv.DictWriter(csv_file, fieldnames=csv_fieldnames, extrasaction="ignore")
+    csv_writer.writeheader()
+
     # Training loop
     total_frames = 0
-    csv_writer = None
-    csv_file = None
 
     for iteration, td in enumerate(collector):
         rb.extend(td.reshape(-1).cpu())
@@ -213,17 +241,22 @@ def main() -> None:
         metrics = compute_metrics(td, base_env.group_map, n_agents, cfg.env.max_steps)
         print(format_metrics(iteration, total_frames, metrics))
 
-        # CSV logging — open and write header on first training iteration
-        row = {"iteration": iteration, "total_frames": total_frames, **metrics}
-        if csv_writer is None:
-            csv_file = open(csv_path, "w", newline="")
-            csv_writer = csv.DictWriter(csv_file, fieldnames=list(row.keys()))
-            csv_writer.writeheader()
+        # Intermittent deterministic evaluation
+        eval_metrics = {}
+        if (iteration + 1) % cfg.eval.interval == 0:
+            eval_metrics = run_eval(
+                actors, eval_env, groups,
+                cfg.eval.n_episodes, device, cfg.env.max_steps,
+            )
+            print("  EVAL  " + "  ".join(f"{k}={v:.3f}" for k, v in eval_metrics.items()))
+
+        # CSV logging
+        row = {"iteration": iteration, "total_frames": total_frames, **metrics, **eval_metrics}
         csv_writer.writerow(row)
         csv_file.flush()
 
-    if csv_file is not None:
-        csv_file.close()
+    csv_file.close()
+    eval_env.close()
 
     # Save model weights
     weights_path = runs_dir / "weights.pt"
