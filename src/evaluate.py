@@ -33,8 +33,9 @@ def run_eval(
         for _ in range(n_episodes):
             td = eval_env.rollout(max_steps=max_steps, policy=policy)
             for g in groups:
-                # (g, "reward"): [T, n_agents, 1] — sum over time, mean over agents
-                ep_ret = td[(g, "reward")].sum(0).mean().item()
+                # episode_reward is written by RewardSum; at the final step it holds
+                # the total cumulative return. Shape: [T, n_agents, 1]
+                ep_ret = td[(g, "episode_reward")][-1].mean().item()
                 returns[g].append(ep_ret)
 
     return {f"eval_ep_return_{g}": sum(v) / len(v) for g, v in returns.items()}
