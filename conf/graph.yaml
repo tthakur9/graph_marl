@@ -1,0 +1,39 @@
+# Hyperparameters for the MADDPG baseline on PettingZoo simple_tag_v3.
+
+seed: 0
+
+env:
+  task: "simple_tag_v3"
+  max_steps: 100 # episode length
+  n_chasers: 3 # num_adversaries
+  n_evaders: 1 # num_good
+  n_obstacles: 2
+
+collection:
+  frames_per_batch: 1000
+  n_iters: 150 # total_frames = frames_per_batch * n_iters
+
+replay_buffer:
+  memory_size: 1_000_000
+
+training:
+  n_opt_steps: 100 # gradient steps per collection iteration
+  batch_size: 128
+  lr: 3e-4
+  max_grad_norm: 1.0
+  stop_evader_iter: 75 # freeze evader training after this many iterations
+
+maddpg:
+  gamma: 0.99
+  polyak_tau: 0.005 # soft target-network update coefficient
+
+architecture:
+  hidden: 256
+
+eval:
+  interval: 10    # run evaluation every N train iterations
+  n_episodes: 10  # episodes per eval (mean episode return reported)
+
+graph:
+  n_layers: 2
+  radius: null
