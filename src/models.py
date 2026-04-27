@@ -13,6 +13,7 @@ def make_critic(
     device: torch.device,
     group: str,
     share_params: bool,
+    feature_key: str = "observation",
 ) -> TensorDictModule:
     """Centralized critic - maps global obs+act -> group station action values"""
     in_dim = n_agents * (obs_dim + act_dim)
@@ -44,7 +45,7 @@ def make_critic(
 
     return TensorDictModule(
         module=CentralizedCriticNet(n_agents, mlp),
-        in_keys=[(group, "observation"), (group, "action")],
+        in_keys=[(group, feature_key), (group, "action")],
         out_keys=["state_action_value"],
     )
 
@@ -58,6 +59,7 @@ def make_actor(
     group: str,
     share_params: bool,
     action_spec,
+    feature_key: str = "observation",
 ) -> ProbabilisticActor:
     mlp = MultiAgentMLP(
         n_agent_inputs=obs_dim,
@@ -72,7 +74,7 @@ def make_actor(
     )
     actor_net = TensorDictModule(
         module=mlp,
-        in_keys=[(group, "observation")],
+        in_keys=[(group, feature_key)],
         out_keys=[(group, "param")],
     )
     return ProbabilisticActor(

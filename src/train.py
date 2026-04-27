@@ -14,6 +14,7 @@ TorchRL MADDPG baseline on PettingZoo MPE Simple Tag.
 """
 
 from __future__ import annotations
+import argparse
 import csv
 import datetime
 import torch
@@ -32,9 +33,15 @@ from src.evaluate import run_eval
 
 
 def main() -> None:
-    # Config 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", type=int, default=None, help="Override cfg.seed")
+    args = parser.parse_args()
+
+    # Config
     cfg_path = Path(__file__).parent.parent / "conf" / "baseline.yaml"
     cfg = OmegaConf.load(cfg_path)
+    if args.seed is not None:
+        cfg.seed = args.seed
 
     torch.manual_seed(cfg.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -44,7 +51,7 @@ def main() -> None:
     total_frames_target = cfg.collection.frames_per_batch * cfg.collection.n_iters
 
     # Output directory for this run
-    run_tag = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_tag = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_seed{cfg.seed}"
     runs_dir = Path(__file__).parent.parent / "runs" / run_tag
     runs_dir.mkdir(parents=True, exist_ok=True)
     csv_path = runs_dir / "metrics.csv"
@@ -176,9 +183,7 @@ def main() -> None:
     )
 
     # CSV: pre-define all columns so eval columns are always present
-    train_metric_keys = [f"ep_return_{g}" for g in groups] + [
-        "capture_rate", "time_to_capture", "collision_rate", "coverage_eff"
-    ]
+    train_metric_keys = [f"return_{g}" for g in groups]
     eval_metric_keys = [f"eval_ep_return_{g}" for g in groups]
     csv_fieldnames = ["iteration", "total_frames"] + train_metric_keys + eval_metric_keys
     csv_file = open(csv_path, "w", newline="")
@@ -199,7 +204,7 @@ def main() -> None:
             training_groups.remove("agent")
 
         if len(rb) < cfg.training.batch_size:
-            metrics = compute_metrics(td, base_env.group_map, n_agents, cfg.env.max_steps)
+            metrics = compute_metrics(td, base_env.group_map)
             print(format_metrics(iteration, total_frames, metrics))
             continue
 
@@ -239,7 +244,7 @@ def main() -> None:
                 target_updaters[g].step()
 
         # Metrics & logging
-        metrics = compute_metrics(td, base_env.group_map, n_agents, cfg.env.max_steps)
+        metrics = compute_metrics(td, base_env.group_map)
         print(format_metrics(iteration, total_frames, metrics))
 
         # Intermittent deterministic evaluation
