@@ -8,9 +8,7 @@ TorchRL MADDPG baseline on PettingZoo MPE Simple Tag.
   - A single SyncDataCollector drives collection, where both actors are composed into
     one TensorDictSequential with AdditiveGaussianModule noise for exploration.
   - One shared ReplayBuffer stores full multi-agent TensorDicts.
-  - Hyperparameters are loaded from conf/baseline.yaml via OmegaConf.
-  - Proposal metrics (capture rate, time-to-capture, collision rate, coverage
-    efficiency) are computed each iteration via src/metrics.py.
+  - Hyperparameters are loaded from conf/baseline.yaml
 """
 
 from __future__ import annotations
