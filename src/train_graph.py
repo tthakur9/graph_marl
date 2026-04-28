@@ -53,7 +53,7 @@ def main() -> None:
 
     # Output directory for this run
     run_tag = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_seed{cfg.seed}"
-    runs_dir = Path(__file__).parent.parent / "runs" / run_tag
+    runs_dir = Path(__file__).parent.parent / "runs" / cfg.graph.backbone / run_tag
     runs_dir.mkdir(parents=True, exist_ok=True)
     csv_path = runs_dir / "metrics.csv"
     print(f"Run dir: {runs_dir}")
