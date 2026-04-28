@@ -37,3 +37,5 @@ eval:
 graph:
   n_layers: 2
   radius: null
+  backbone: gat   # 'gcn' or 'gat'
+  n_heads: 4      # attention heads (gat only; hidden must be divisible by n_heads)
