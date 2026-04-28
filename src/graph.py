@@ -102,11 +102,19 @@ class GNNEncoder(nn.Module):
         ])
 
     def forward(self, obs: torch.Tensor) -> torch.Tensor:
-        adj = self.graph_builder(obs) # [B, N, N] - rebuilt every step
+        # SyncDataCollector calls the policy one step at a time, so obs
+        # arrives as [N, obs_dim] (no batch dim). bmm requires 3D, so
+        # we add/remove the batch dim around the GCN computation.
+        unbatched = obs.dim() == 2
+        if unbatched:
+            obs = obs.unsqueeze(0)      # [1, N, obs_dim]
+
+        adj = self.graph_builder(obs)   # [B, N, N] — rebuilt every step
         h = obs
         for layer in self.layers:
             h = layer(h, adj)
-        return h # [B, N, hidden_dim]
+
+        return h.squeeze(0) if unbatched else h
 
 
 # TorchRL factory
