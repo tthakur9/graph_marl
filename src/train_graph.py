@@ -111,6 +111,8 @@ def main() -> None:
         g: make_gnn_encoder(obs_dims[g], cfg.architecture.hidden, g,
                             n_layers=cfg.graph.n_layers,
                             radius=cfg.graph.radius,
+                            backbone=cfg.graph.backbone,
+                            n_heads=cfg.graph.n_heads,
                             device=device)
         for g in groups
     }
