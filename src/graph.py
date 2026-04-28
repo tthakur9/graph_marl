@@ -3,9 +3,9 @@ Graph backbone for Graph-Augmented MADDPG
 
 Communication-Abstraction pattern:
 - raw obs [B, N, D] -> ProximityGraphBuilder -> adj [B, N, N] (binary, self-loops included) 
-  -> GCNLayer x L -> embedding [B, N, H] (drop-in for raw obs in actor / critic)
-- Dense batched adjacency [B, N, N].
-- Symmetric-normalized GCN as the backbone.
+  -> GCNLayer/GATLayer x L -> embedding [B, N, H] (drop-in for raw obs in actor / critic)
+- Dense batched adjacency matrix for graph [B, N, N].
+- Option for symmetric-normalized GCN or GAT as the backbone.
 - Single shared GNNEncoder instance wraps as a TensorDictModule so it
   integrates cleanly with TorchRL's TensorDictSequential.
 - Encoder can be prepended to both the actor and critic chains so that
@@ -16,7 +16,6 @@ Communication-Abstraction pattern:
 """
 
 from __future__ import annotations
-
 import torch
 import torch.nn as nn
 from tensordict.nn import TensorDictModule
@@ -75,31 +74,98 @@ class GCNLayer(nn.Module):
         return self.act(self.linear(torch.bmm(a_hat, h))) # [B, N, out_dim]
 
 
+class GATLayer(nn.Module):
+    """
+    One GAT message-passing step with multi-head attention
+    For each directed edge, apply attention over neighbors
+    K heads run, outputs are concatenated.
+    Non-edges are masked to -inf before softmax.
+    """
+    def __init__(
+        self,
+        in_dim: int,
+        out_dim: int,
+        n_heads: int = 4,
+        negative_slope: float = 0.2,
+    ):
+        super().__init__()
+        assert out_dim % n_heads == 0, \
+            f"out_dim ({out_dim}) must be divisible by n_heads ({n_heads})"
+        self.n_heads = n_heads
+        self.head_dim = out_dim // n_heads
+        self.W = nn.Linear(in_dim, out_dim, bias=False) # Shared linear projection
+        self.a = nn.Parameter(torch.empty(n_heads, 2 * self.head_dim)) # Per-head attention vector
+        nn.init.xavier_uniform_(self.a)
+        self.leaky_relu = nn.LeakyReLU(negative_slope)
+        self.act = nn.ELU()
+
+    def forward(self, h: torch.Tensor, adj: torch.Tensor) -> torch.Tensor:
+        """
+        Args: 
+        - h (embeddings): [B, N, in_dim]
+        - adj (adjacency graph): [B, N, N]
+        Returns:
+        - h' (out embeddings):  [B, N, out_dim]
+        """
+        B, N, _ = h.shape
+        H, D = self.n_heads, self.head_dim
+
+        # Project all node features -> [B, N, H, D]
+        Wh = self.W(h).view(B, N, H, D)
+
+        # Wh_i[b,i,j,:,:] = features of receiving node i
+        # Wh_j[b,i,j,:,:] = features of sending node j
+        Wh_i = Wh.unsqueeze(2).expand(B, N, N, H, D) # [B, N, N, H, D]
+        Wh_j = Wh.unsqueeze(1).expand(B, N, N, H, D) # [B, N, N, H, D]
+
+        # Similarity scores
+        e = (torch.cat([Wh_i, Wh_j], dim=-1) * self.a).sum(-1)
+        e = self.leaky_relu(e)
+
+        # Mask non-edges before softmax
+        e = e.masked_fill((adj == 0).unsqueeze(-1), float('-inf'))
+
+        # Softmax over neighbors
+        alpha = torch.nan_to_num(torch.softmax(e, dim=2), nan=0.0) # [B, N, N, H]
+
+        # Weighted sum then concatenate heads
+        out = (alpha.unsqueeze(-1) * Wh_j).sum(2) # [B, N, H, D]
+        return self.act(out.reshape(B, N, H * D)) # [B, N, out_dim]
+
+
 # Multi-layer GNN encoder
 class GNNEncoder(nn.Module):
     """
-    Multi-layer GCN backbone for a group of agents.
+    Multi-layer GNN backbone for a group of agents.
     Processes all N agents obs jointly:
     1. Builds a proximity graph on the fly from embedded positions.
-    2. Runs L stacked GCN layers with shared weights.
-    3. Returns per-agent relational embeddings that capture both local
-       state and neighbourhood context.
+    2. Runs L stacked backbone layers with shared weights.
+    3. Returns per-agent relational embeddings.
+    backbone is either 'gcn' or 'gat'.
+    n_heads is number of attention heads - out_dim % n_heads == 0
     """
-
     def __init__(
         self,
         obs_dim: int,
         hidden_dim: int,
         n_layers: int = 2,
         radius: float | None = None,
+        backbone: str = 'gcn',
+        n_heads: int = 4,
     ):
         super().__init__()
         self.graph_builder = ProximityGraphBuilder(radius=radius)
-
         dims = [obs_dim] + [hidden_dim] * n_layers
-        self.layers = nn.ModuleList([
-            GCNLayer(dims[i], dims[i + 1]) for i in range(n_layers)
-        ])
+        if backbone == 'gcn':
+            self.layers = nn.ModuleList([
+                GCNLayer(dims[i], dims[i + 1]) for i in range(n_layers)
+            ])
+        elif backbone == 'gat':
+            self.layers = nn.ModuleList([
+                GATLayer(dims[i], dims[i + 1], n_heads=n_heads) for i in range(n_layers)
+            ])
+        else:
+            raise ValueError(f"Unknown backbone '{backbone}'.")
 
     def forward(self, obs: torch.Tensor) -> torch.Tensor:
         # SyncDataCollector calls the policy one step at a time, so obs
@@ -107,13 +173,11 @@ class GNNEncoder(nn.Module):
         # we add/remove the batch dim around the GCN computation.
         unbatched = obs.dim() == 2
         if unbatched:
-            obs = obs.unsqueeze(0)      # [1, N, obs_dim]
-
-        adj = self.graph_builder(obs)   # [B, N, N] — rebuilt every step
+            obs = obs.unsqueeze(0) # [1, N, obs_dim]
+        adj = self.graph_builder(obs) # [B, N, N] - rebuild every step
         h = obs
         for layer in self.layers:
             h = layer(h, adj)
-
         return h.squeeze(0) if unbatched else h
 
 
@@ -124,10 +188,18 @@ def make_gnn_encoder(
     group: str,
     n_layers: int = 2,
     radius: float | None = None,
+    backbone: str = 'gcn',
+    n_heads: int = 4,
     device: torch.device | None = None,
 ) -> TensorDictModule:
-    """Wrap a GNNEncoder as a TorchRL TensorDictModule"""
-    encoder = GNNEncoder(obs_dim, hidden_dim, n_layers=n_layers, radius=radius)
+    """
+    Wrap a GNNEncoder as a TorchRL TensorDictModule.
+    Reads  (group, "observation") [B, N, obs_dim]
+    Writes (group, "embedding")   [B, N, hidden_dim]
+    Backbone is either 'gcn' or 'gat'.
+    """
+    encoder = GNNEncoder(obs_dim, hidden_dim, n_layers=n_layers, radius=radius,
+                         backbone=backbone, n_heads=n_heads)
     if device is not None:
         encoder = encoder.to(device)
     return TensorDictModule(
