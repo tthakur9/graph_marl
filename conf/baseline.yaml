@@ -1,6 +1,7 @@
 # Hyperparameters for the MADDPG baseline on PettingZoo simple_tag_v3.
 
 seed: 0
+run_group: baseline
 
 env:
   task: "simple_tag_v3"
@@ -11,7 +12,7 @@ env:
 
 collection:
   frames_per_batch: 1000
-  n_iters: 150 # total_frames = frames_per_batch * n_iters
+  n_iters: 300 # total_frames = frames_per_batch * n_iters
 
 replay_buffer:
   memory_size: 1_000_000
