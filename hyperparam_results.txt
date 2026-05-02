@@ -1,0 +1,181 @@
+
+Ranking method:
+1. Higher mean_window_adversary_return is better.
+2. Lower std_window_adversary_return is better as a tie-breaker.
+3. Higher mean_final_adversary_return is better as a second tie-breaker.
+4. Lower n_opt_steps is preferred if results are otherwise similar, because it is cheaper.
+Failure handling:
+- Failed, empty, unreadable, or missing metrics files are skipped from averages.
+- Configs with missing runs are still ranked, but marked as incomplete.
+- Be cautious about choosing a config ranked highly from only 1 or 2 successful seeds.
+Found 27 valid runs across 9 hyperparameter combinations.
+Found 0 failed or skipped run(s).
+Expected runs per config: 3
+Metrics source: eval returns when available; otherwise train returns.
+Ranked combinations:
+--------------------
+Rank 1: lr0.0003_n_opt_steps200
+  lr: 0.0003
+  n_opt_steps: 200
+  successful runs: 3
+  missing/failed runs: 0
+  seeds included: [0, 1, 2]
+  score source: eval
+  mean window adversary return: 403.0667
+  std window adversary return: 71.4065
+  mean final adversary return: 428.0000
+  std final adversary return: 57.4195
+  mean best adversary return: 507.0000
+  mean window agent return: -403.3193
+  mean final agent return: -428.1478
+  mean window total score: -0.2526
+  mean final total score: -0.1478
+  mean final total frames: 300000
+Rank 2: lr0.0001_n_opt_steps200
+  lr: 0.0001
+  n_opt_steps: 200
+  successful runs: 3
+  missing/failed runs: 0
+  seeds included: [0, 1, 2]
+  score source: eval
+  mean window adversary return: 375.5333
+  std window adversary return: 283.7069
+  mean final adversary return: 445.3333
+  std final adversary return: 299.9906
+  mean best adversary return: 445.3333
+  mean window agent return: -723.0469
+  mean final agent return: -786.5135
+  mean window total score: -347.5135
+  mean final total score: -341.1802
+  mean final total frames: 300000
+Rank 3: lr0.0003_n_opt_steps50
+  lr: 0.0003
+  n_opt_steps: 50
+  successful runs: 3
+  missing/failed runs: 0
+  seeds included: [0, 1, 2]
+  score source: eval
+  mean window adversary return: 337.9333
+  std window adversary return: 175.3894
+  mean final adversary return: 347.6667
+  std final adversary return: 220.6362
+  mean best adversary return: 408.6667
+  mean window agent return: -874.6058
+  mean final agent return: -865.6132
+  mean window total score: -536.6725
+  mean final total score: -517.9465
+  mean final total frames: 300000
+Rank 4: lr0.001_n_opt_steps100
+  lr: 0.0010
+  n_opt_steps: 100
+  successful runs: 3
+  missing/failed runs: 0
+  seeds included: [0, 1, 2]
+  score source: eval
+  mean window adversary return: 297.1333
+  std window adversary return: 113.6002
+  mean final adversary return: 218.6667
+  std final adversary return: 197.1429
+  mean best adversary return: 436.6667
+  mean window agent return: -300.3294
+  mean final agent return: -220.6997
+  mean window total score: -3.1960
+  mean final total score: -2.0330
+  mean final total frames: 300000
+Rank 5: lr0.0003_n_opt_steps100
+  lr: 0.0003
+  n_opt_steps: 100
+  successful runs: 3
+  missing/failed runs: 0
+  seeds included: [0, 1, 2]
+  score source: eval
+  mean window adversary return: 273.9333
+  std window adversary return: 176.5428
+  mean final adversary return: 318.3333
+  std final adversary return: 172.8622
+  mean best adversary return: 377.0000
+  mean window agent return: -562.0802
+  mean final agent return: -585.0907
+  mean window total score: -288.1469
+  mean final total score: -266.7574
+  mean final total frames: 300000
+
+Rank 6: lr0.001_n_opt_steps50
+  lr: 0.0010
+  n_opt_steps: 50
+  successful runs: 3
+  missing/failed runs: 0
+  seeds included: [0, 1, 2]
+  score source: eval
+  mean window adversary return: 235.6000
+  std window adversary return: 131.9868
+  mean final adversary return: 205.3333
+  std final adversary return: 221.1613
+  mean best adversary return: 387.0000
+  mean window agent return: -349.6513
+  mean final agent return: -279.8404
+  mean window total score: -114.0513
+  mean final total score: -74.5071
+  mean final total frames: 300000
+
+Rank 7: lr0.0001_n_opt_steps100
+  lr: 0.0001
+  n_opt_steps: 100
+  successful runs: 3
+  missing/failed runs: 0
+  seeds included: [0, 1, 2]
+  score source: eval
+  mean window adversary return: 220.6000
+  std window adversary return: 38.3004
+  mean final adversary return: 259.3333
+  std final adversary return: 38.6825
+  mean best adversary return: 307.6667
+  mean window agent return: -613.6464
+  mean final agent return: -557.4214
+  mean window total score: -393.0464
+  mean final total score: -298.0881
+  mean final total frames: 300000
+
+Rank 8: lr0.0001_n_opt_steps50
+  lr: 0.0001
+  n_opt_steps: 50
+  successful runs: 3
+  missing/failed runs: 0
+  seeds included: [0, 1, 2]
+  score source: eval
+  mean window adversary return: 142.6000
+  std window adversary return: 137.6754
+  mean final adversary return: 185.6667
+  std final adversary return: 117.0057
+  mean best adversary return: 196.3333
+  mean window agent return: -509.7605
+  mean final agent return: -590.2943
+  mean window total score: -367.1605
+  mean final total score: -404.6276
+  mean final total frames: 300000
+
+Rank 9: lr0.001_n_opt_steps200
+  lr: 0.0010
+  n_opt_steps: 200
+  successful runs: 3
+  missing/failed runs: 0
+  seeds included: [0, 1, 2]
+  score source: eval
+  mean window adversary return: 137.6667
+  std window adversary return: 128.6027
+  mean final adversary return: 157.3333
+  std final adversary return: 252.7337
+  mean best adversary return: 338.6667
+  mean window agent return: -137.8337
+  mean final agent return: -157.4811
+  mean window total score: -0.1670
+  mean final total score: -0.1478
+  mean final total frames: 300000
+
+Recommended starting point:
+---------------------------
+Use lr0.0003_n_opt_steps200 as the first candidate.
+This is the best-ranked config with all expected seeds completed.
+This corresponds to lr=0.0003, n_opt_steps=200.
+It had mean_window_adversary_return=403.0667 with std=71.4065 across 3 successful run(s).
+Gap compared to the second-ranked config by mean window adversary return: 27.5333.
