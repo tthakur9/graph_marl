@@ -92,6 +92,12 @@ def generate_configs(
     return results
 
 
+def is_complete(model: str, label: str, seed: int) -> bool:
+    """Return True if a metrics.csv already exists for this (model, label, seed)."""
+    pattern = Path("runs") / "experiment" / model / label / f"*_seed{seed}" / "metrics.csv"
+    return bool(list(Path(".").glob(str(pattern))))
+
+
 def submit(model: str, cfg_path: Path, seed: int, dry_run: bool) -> str:
     cmd = ["sbatch", "job_experiment.sh", model, str(cfg_path), str(seed)]
     if dry_run:
@@ -101,11 +107,14 @@ def submit(model: str, cfg_path: Path, seed: int, dry_run: bool) -> str:
 
 
 def run_model(model: str, grids: list[dict], fixed: dict, seeds: list[int],
-              out_dir: Path, dry_run: bool) -> int:
+              out_dir: Path, dry_run: bool, rerun_failed: bool) -> int:
     configs = generate_configs(out_dir, model, grids, fixed)
     n_jobs  = 0
     for cfg_path, label in configs:
         for seed in seeds:
+            if rerun_failed and is_complete(model, label, seed):
+                print(f"  [{model}/{label}] seed={seed}: skip (already complete)")
+                continue
             msg = submit(model, cfg_path, seed, dry_run)
             print(f"  [{model}/{label}] seed={seed}: {msg}")
             n_jobs += 1
@@ -118,6 +127,8 @@ def main() -> None:
                         help="Print sbatch commands without submitting")
     parser.add_argument("--model", choices=["baseline", "gcn", "gat"],
                         default=None, help="Submit jobs for one model only")
+    parser.add_argument("--rerun-failed", action="store_true",
+                        help="Skip configs that already have a completed metrics.csv")
     args = parser.parse_args()
 
     exp_cfg  = OmegaConf.load("conf/experiment.yaml")
@@ -133,15 +144,15 @@ def main() -> None:
 
     if run_all or args.model == "baseline":
         print("=== Baseline ===")
-        total += run_model("baseline", [env_grid], fixed, seeds, out_dir, args.dry_run)
+        total += run_model("baseline", [env_grid], fixed, seeds, out_dir, args.dry_run, args.rerun_failed)
 
     if run_all or args.model == "gcn":
         print("\n=== GCN ===")
-        total += run_model("gcn", [env_grid, gcn_grid], fixed, seeds, out_dir, args.dry_run)
+        total += run_model("gcn", [env_grid, gcn_grid], fixed, seeds, out_dir, args.dry_run, args.rerun_failed)
 
     if run_all or args.model == "gat":
         print("\n=== GAT ===")
-        total += run_model("gat", [env_grid, gat_grid], fixed, seeds, out_dir, args.dry_run)
+        total += run_model("gat", [env_grid, gat_grid], fixed, seeds, out_dir, args.dry_run, args.rerun_failed)
 
     print(f"\nTotal jobs {'(dry-run) ' if args.dry_run else ''}submitted: {total}")
 

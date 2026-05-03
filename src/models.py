@@ -46,7 +46,7 @@ def make_critic(
     return TensorDictModule(
         module=CentralizedCriticNet(n_agents, mlp),
         in_keys=[(group, feature_key), (group, "action")],
-        out_keys=["state_action_value"],
+        out_keys=[f"{group}_state_action_value"],
     )
 
 # Decentralized actor

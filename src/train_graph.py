@@ -167,7 +167,8 @@ def main() -> None:
             reward=(g, "reward"),
             done=(g, "done"),
             terminated=(g, "terminated"),
-            state_action_value="state_action_value",
+            state_action_value=f"{g}_state_action_value",
+            priority=f"{g}_td_error",
         )
         loss.make_value_estimator(ValueEstimators.TD0, gamma=cfg.maddpg.gamma)
         loss.to(device)
