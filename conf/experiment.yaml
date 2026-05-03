@@ -1,0 +1,21 @@
+seeds: [0, 1, 2]
+
+# Fixed across all runs (best from LR/opt-steps sweep)
+fixed:
+  training.lr: 3.0e-4
+  training.n_opt_steps: 200
+  collection.n_iters: 300
+
+# ── Environment variables (swept for all models) ─────────────────────────────
+env_grid:
+  env.n_chasers:   [2, 3, 4]
+  env.n_evaders:   [1, 2]
+  env.n_obstacles: [1, 2, 3]
+
+# ── Graph architecture (swept for GCN/GAT, crossed with env_grid) ────────────
+# GCN and GAT: vary radius only
+gcn_grid:
+  graph.radius: [null, 0.5, 1.0]
+
+gat_grid:
+  graph.radius: [null, 0.5, 1.0]

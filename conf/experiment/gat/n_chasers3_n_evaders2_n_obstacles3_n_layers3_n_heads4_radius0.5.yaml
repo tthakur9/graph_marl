@@ -1,0 +1,32 @@
+seed: 0
+env:
+  task: simple_tag_v3
+  max_steps: 100
+  n_chasers: 3
+  n_evaders: 2
+  n_obstacles: 3
+collection:
+  frames_per_batch: 1000
+  n_iters: 300
+replay_buffer:
+  memory_size: 1000000
+training:
+  n_opt_steps: 200
+  batch_size: 128
+  lr: 0.0003
+  max_grad_norm: 1.0
+  stop_evader_iter: 75
+maddpg:
+  gamma: 0.99
+  polyak_tau: 0.005
+architecture:
+  hidden: 256
+eval:
+  interval: 10
+  n_episodes: 10
+graph:
+  n_layers: 3
+  radius: 0.5
+  backbone: gat
+  n_heads: 4
+run_group: experiment/gat/n_chasers3_n_evaders2_n_obstacles3_n_layers3_n_heads4_radius0.5

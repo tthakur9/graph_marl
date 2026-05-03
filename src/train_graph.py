@@ -36,10 +36,11 @@ from src.graph import make_gnn_encoder
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=None, help="Override cfg.seed")
+    parser.add_argument("--config", type=str, default=None, help="Path to config yaml")
     args = parser.parse_args()
 
     # Config
-    cfg_path = Path(__file__).parent.parent / "conf" / "graph.yaml"
+    cfg_path = args.config if args.config else Path(__file__).parent.parent / "conf" / "graph.yaml"
     cfg = OmegaConf.load(cfg_path)
     if args.seed is not None:
         cfg.seed = args.seed
@@ -53,7 +54,8 @@ def main() -> None:
 
     # Output directory for this run
     run_tag = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_seed{cfg.seed}"
-    runs_dir = Path(__file__).parent.parent / "runs" / cfg.graph.backbone / run_tag
+    run_group = cfg.get("run_group", cfg.graph.backbone)
+    runs_dir = Path(__file__).parent.parent / "runs" / run_group / run_tag
     runs_dir.mkdir(parents=True, exist_ok=True)
     csv_path = runs_dir / "metrics.csv"
     print(f"Run dir: {runs_dir}")
