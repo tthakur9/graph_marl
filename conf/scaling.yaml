@@ -1,0 +1,23 @@
+seeds: [0, 1, 2]
+
+fixed:
+  training.lr: 3.0e-4
+  training.n_opt_steps: 200
+  collection.n_iters: 300
+  env.n_obstacles: 2
+
+models: [baseline, gcn, gat]
+
+# Equal: n_chasers == n_evaders
+equal:
+  - {env.n_chasers: 5,  env.n_evaders: 5}
+  - {env.n_chasers: 10, env.n_evaders: 10}
+  - {env.n_chasers: 25, env.n_evaders: 25}
+  - {env.n_chasers: 50, env.n_evaders: 50}
+
+# Unequal: 3:1 ratio (mirrors original 3 chasers / 1 evader)
+unequal:
+  - {env.n_chasers: 6,  env.n_evaders: 2}
+  - {env.n_chasers: 15, env.n_evaders: 5}
+  - {env.n_chasers: 30, env.n_evaders: 10}
+  - {env.n_chasers: 48, env.n_evaders: 16}
